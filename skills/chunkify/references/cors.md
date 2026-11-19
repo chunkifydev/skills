@@ -1,6 +1,8 @@
 # Browser upload and playback CORS
 
-Use this when browser uploads reach customer storage or playback reads its CDN. Read the current bucket and CDN policies first. Derive the new rules from the actual page origins, upload PUT and `Content-Type` request, HLS playlist and segment reads, poster and timeline requests, and required response headers. Include `https://chunkify.dev` when the Chunkify web app must upload or play this media.
+Use this when browser uploads reach customer storage or playback reads its CDN. Read the current bucket and CDN policies first. Derive the new rules from the actual page origins, upload PUT and `Content-Type` request, HLS playlist and segment reads, poster and timeline requests, and required response headers. Allow only the application's own origins by default.
+
+The Chunkify dashboard needs `https://chunkify.dev` to upload or preview this media. Add it when the user asks for dashboard uploads or previews. Otherwise, ask once while presenting the policy for approval, and add it only if the user agrees.
 
 For S3, a combined console-format example is:
 
@@ -8,7 +10,6 @@ For S3, a combined console-format example is:
 [
   {
     "AllowedOrigins": [
-      "https://chunkify.dev",
       "http://localhost:3000",
       "https://app.example.com"
     ],

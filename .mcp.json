@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "chunkify": {
+      "type": "http",
+      "url": "https://api.chunkify.dev/mcp"
+    }
+  }
+}

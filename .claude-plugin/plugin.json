@@ -1,0 +1,25 @@
+{
+  "name": "chunkify",
+  "version": "3.4.0",
+  "description": "Add Chunkify video uploads, streaming, and playback analytics to your app, and manage your Chunkify Projects through MCP.",
+  "author": {
+    "name": "Chunkify",
+    "url": "https://chunkify.dev"
+  },
+  "homepage": "https://chunkify.dev",
+  "repository": "https://github.com/chunkifydev/skills",
+  "license": "MIT",
+  "keywords": [
+    "video",
+    "streaming",
+    "uploads",
+    "playback",
+    "analytics",
+    "mcp"
+  ],
+  "icon": "./logo.svg",
+  "documentationUrl": "https://chunkify.dev/docs/integration/chunkify-skill",
+  "supportUrl": "https://github.com/chunkifydev/skills/issues",
+  "privacyPolicyUrl": "https://chunkify.dev/docs/legal/privacy-policy",
+  "termsOfServiceUrl": "https://chunkify.dev/docs/legal/tos"
+}

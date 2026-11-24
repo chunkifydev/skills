@@ -1,0 +1,15 @@
+{
+  "name": "chunkify",
+  "description": "Official Chunkify plugins for Claude.",
+  "owner": {
+    "name": "Chunkify",
+    "url": "https://chunkify.dev"
+  },
+  "plugins": [
+    {
+      "name": "chunkify",
+      "source": "./",
+      "description": "Add Chunkify video uploads, streaming, and playback analytics to your app, and manage your Chunkify Projects through MCP."
+    }
+  ]
+}

@@ -62,9 +62,32 @@ Do routine local setup and read-only checks when safe. Before changing shared re
 
 Reuse the application's chosen destination. When none is configured, offer managed Chunkify Analytics with 30-day data retention or a self-hosted [Chunkify Analytics server](https://github.com/chunkifydev/chunkify-analytics) with operator-controlled retention and storage. Both can display analytics in the Chunkify dashboard; a separate customer dashboard is optional. Managed retention is independent of media retention; check the configured policy for a custom agreement. Do not substitute console logging for delivery.
 
+#### Video IDs
+
+Each video ID gets its own views. Use the ID of the file the player plays: the Asset ID for an Asset's HLS stream, the static rendition's own `aop_` ID for an Asset's MP4, and the file ID for a Transcoding output. Never report a static rendition under its Asset ID: an adaptive HLS stream and a fixed MP4 file would blend into one set of quality and transfer reports; the Chunkify dashboard links it to its Asset and lists it on the Asset's analytics page. Any other stable application ID also works.
+
+#### Chunkify Player attributes
+
+Always generate or reuse a public ingestion key for the selected analytics project as part of player analytics setup. It connects players in the user's own app as well as players inside the Chunkify dashboard. The optional public-key field on a dashboard connection does not make this credential optional for a player.
+
+With Chunkify Player and Chunkify Analytics, prefer the player's analytics attributes over `monitor()`; they need no tracker code:
+
+```html
+<chunkify-player
+  src="PLAYBACK_URL"
+  controls
+  playsinline
+  analytics
+  analytics-ingest-key="YOUR_PROJECT_PUBLIC_KEY"
+  analytics-video-id="YOUR_VIDEO_OR_ASSET_ID"
+></chunkify-player>
+```
+
+Managed hosting is the default endpoint. For a self-hosted server, add `analytics-endpoint` with its base URL, such as `https://analytics.example.com`. Removing `analytics` or the player ends the current view. Use either the attributes or `monitor()` on a player, never both, or each view is recorded twice.
+
 #### Player adapter
 
-Install `@chunkify/player-analytics` with the application's package manager. The dedicated destination adapter lives in the player repository's analytics package and works with either hosting option. Always generate or reuse a public ingestion key for the selected analytics project as part of player analytics setup. It connects players in the user's own app as well as players inside the Chunkify dashboard. The optional public-key field on a dashboard connection does not make this credential optional for a player. Supply the full ingestion URL, ending in `/v1/events`, and that analytics project's public key:
+For other players, other destinations, or custom event settings, install `@chunkify/player-analytics` with the application's package manager. The dedicated destination adapter lives in the player repository's analytics package and works with either hosting option. Supply the analytics server's base URL and that analytics project's public key:
 
 ```js
 import "@chunkify/player";
@@ -76,7 +99,7 @@ const player = document.querySelector("chunkify-player");
 const session = monitor(player, {
   videoId: "YOUR_VIDEO_OR_ASSET_ID",
   destinations: [
-    createChunkifyAdapter("https://analytics.chunkify.dev/v1/events", {
+    createChunkifyAdapter("https://analytics.chunkify.dev", {
       ingestKey: "YOUR_PROJECT_PUBLIC_KEY",
     }),
   ],
@@ -85,8 +108,8 @@ const session = monitor(player, {
 // Call session.destroy() in the component's unmount or teardown handler.
 ```
 
-- Managed ingestion uses `https://analytics.chunkify.dev/v1/events`. For self-hosting, replace that URL with the user's analytics server base URL plus `/v1/events`, such as `https://analytics.example.com/v1/events`. Use the public key from the same analytics project. The adapter sets `X-Chunkify-Ingest-Key` and sends native events with browser context. It retries temporary failures at most twice by default. `retry: false` disables retries; `collectBrowserContext: false` disables browser context collection. Check the installed package's options before changing them.
-- `monitor()` accepts `<chunkify-player>` or a native `<video>`. Use the application's stable video ID or Chunkify Asset ID for `videoId`. Attach one session after mounting and destroy it on teardown. Call `sourceChanged()` before replacing a source outside a player connector. For application-initiated native `video.play()`, call `startAttempt()` first when rejected attempts must be counted.
+- Managed ingestion uses `https://analytics.chunkify.dev`. For self-hosting, replace it with the user's analytics server base URL, such as `https://analytics.example.com`; the adapter sends events to its `/v1/events`. Pass a full events URL only for a server behind a proxy path. Use the public key from the same analytics project. The adapter sets `X-Chunkify-Ingest-Key` and sends native events with browser context. It retries temporary failures at most twice by default. `retry: false` disables retries; `collectBrowserContext: false` disables browser context collection. Check the installed package's options before changing them.
+- `monitor()` accepts `<chunkify-player>` or a native `<video>`. Choose `videoId` as described in [Video IDs](#video-ids). Attach one session after mounting and destroy it on teardown. Call `sourceChanged()` before replacing a source outside a player connector. For application-initiated native `video.play()`, call `startAttempt()` first when rejected attempts must be counted.
 - For hls.js, Shaka Player, or Video.js 10 outside Chunkify Player, use the documented `monitorHlsJs`, `monitorShaka`, or `monitorVideoJs` connector with the same destination adapter. `monitor()` does not accept those player instances. The Video.js connector targets version 10, not version 8. Follow each connector's attachment order and cleanup rules.
 - Preserve consent and privacy controls. The package generates an anonymous `viewer_id` and keeps it in `localStorage`; pass `persistViewerId: false` until the application has storage consent when it requires it. Pass `userId` only for a pseudonymous signed-in user ID, never an email address, and `videoTitle` when the application knows the title. Use `custom` only for non-personal dimensions such as a plan or an A/B test variant; it accepts up to 10 keys and is set once per monitoring session. Browser context includes page origin and path, which can contain application identifiers. Keep private credentials on the server. HTTP, OTLP/HTTP logs, Datadog RUM, PostHog, and custom `send(event)` destinations remain available when requested.
 - Keep the default event set for full reports and playback timelines unless the request calls for filtering. `includeEvents` controls delivery and `snapshotIntervalMs` defaults to 30 seconds of active playback. Snapshots contain cumulative totals. Rendition and transfer measurements depend on the playback engine; native HLS and ordinary video still provide media-level measurements. Browser shutdown can prevent final delivery.
@@ -147,7 +170,7 @@ For browser uploads to customer storage or browser playback from its CDN, read [
 
 Run focused tests for the changed code. For a flow that includes uploading, guide the user through one real upload and verify the session, transfer completion, webhook signature, duplicate delivery, local record, and playback. For VOD playback, check that the player loads HLS, poster, and timeline previews without browser calls to the Chunkify API, including after reloads during processing and terminal failures. For customer storage, check CORS and Range requests from the real origin.
 
-For player analytics setup, verify one view reaches the selected destination with the expected video ID, event types, and cumulative metrics. Check source changes and teardown without duplicate sessions. For Chunkify Analytics, verify the application's player uses the selected project's public key and full ingestion URL. Check browser ingestion from the actual origin, including preflight for `Content-Type` and `X-Chunkify-Ingest-Key`, and confirm reports appear in the Chunkify dashboard when connected. Verify OAuth MCP reports through the selected saved connection. For direct analytics API or MCP access, use a read-only key and check that it receives 403 from `GET /v1/project/keys`. Confirm no private key enters client code. For a custom connection, verify reports work with the read-only key alone; if the public key is also saved on that connection, verify dashboard-player events reach the same analytics project.
+For player analytics setup, verify one view reaches the selected destination with the expected video ID, event types, and cumulative metrics. Check source changes and teardown without duplicate sessions. For Chunkify Analytics, verify the application's player uses the selected project's public key and server base URL. Check browser ingestion from the actual origin, including preflight for `Content-Type` and `X-Chunkify-Ingest-Key`, and confirm reports appear in the Chunkify dashboard when connected. Verify OAuth MCP reports through the selected saved connection. For direct analytics API or MCP access, use a read-only key and check that it receives 403 from `GET /v1/project/keys`. Confirm no private key enters client code. For a custom connection, verify reports work with the read-only key alone; if the public key is also saved on that connection, verify dashboard-player events reach the same analytics project.
 
 For report-only requests, verify filters, time range, pagination, and coverage without generating synthetic player events. For token operations, verify the intended scope, metadata-only listing, and private configuration without repeating the secret.
 

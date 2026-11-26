@@ -1,6 +1,6 @@
 {
   "name": "chunkify",
-  "version": "3.6.0",
+  "version": "3.6.1",
   "description": "Add Chunkify video uploads, streaming, and playback analytics to your app, and manage your Chunkify Projects through MCP.",
   "author": {
     "name": "Chunkify",

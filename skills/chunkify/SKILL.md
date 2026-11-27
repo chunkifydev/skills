@@ -12,6 +12,7 @@ Use the connected Chunkify OAuth MCP for resource operations and analytics repor
 Classify the request before editing:
 
 - **Playback for an existing Asset:** connect an Asset already known to the application to its playback UI and durable delivery fields.
+- **Video on a site the user doesn't build:** for WordPress, Webflow, Squarespace, Ghost, or another website builder, give the user an iframe embed instead of a player integration. Follow [Embeds](#embeds).
 - **Browser upload and playback:** create an Upload session on the application server, use the browser uploader, process webhooks, and show playback when ready.
 - **Server ingestion:** ingest a hosted or server-side input through the official SDK, then persist and play the resulting Asset.
 - **Playback analytics:** monitor Chunkify Player, hls.js, Shaka Player, Video.js 10, or a native video element. Use the analytics package's adapters to send events to managed or self-hosted Chunkify Analytics, Datadog RUM, PostHog, OTLP/HTTP logs, or a custom HTTP endpoint; custom `send(event)` destinations are also supported. Both Chunkify Analytics hosting options support reports in the Chunkify dashboard, HTTP API reads, and MCP. Collection through the Chunkify adapter uses a public analytics key. Other destinations use their own adapter configuration. Playback analytics does not require a Chunkify Project token or a new VOD flow.
@@ -57,6 +58,33 @@ Do routine local setup and read-only checks when safe. Before changing shared re
 - Preserve a working HLS player when it fits the requested UX. For a new playback UI, use the `@chunkify/player` Web Component unless the user chose another player. In a compatible React 19 application, `@chunkify/player-react` is also an option; do not change the application's React version just to use the wrapper.
 - With Chunkify Player, pass the saved playback URL as `src`, poster URL as `poster`, and timeline WebVTT URL as `thumbnails`. With another player, use its documented HLS, poster, and thumbnail interfaces. Preserve relevant controls, inline playback, credential mode, styling, and error handling. Follow the application's current UI patterns.
 - If the requested UX includes a detail page, read its state from the application's database. While processing, it may poll an application endpoint. Show the player when playback is ready and an actionable state when processing fails.
+
+### Embeds
+
+An embed plays an Asset in a Chunkify-hosted player at `https://chunkify.dev/embed/ASSET_ID`. Use it for website builders or when the user wants a player without player code. When the application renders its own pages, prefer the player integration above.
+
+Before handing over embed code, check that:
+
+- The Asset has `public_playback` set to `true`. Set it when creating or updating the Asset, or for new Assets through the Project's `asset_defaults.public_playback`.
+- The Asset's storage has a CDN and the Asset has a `cdn_url`. Embeds do not play Chunkify temporary storage previews.
+- The CDN's CORS rule allows `https://chunkify.dev`. See [CORS](references/cors.md).
+
+Size the iframe like the video, using the poster's `width` and `height` or the Asset's `source_metadata`, with `16 / 9` as the fallback. Keep the `allow` and `allowfullscreen` attributes:
+
+```html
+<iframe
+  src="https://chunkify.dev/embed/ASSET_ID"
+  title="Video player"
+  style="width: 100%; aspect-ratio: 16 / 9; border: 0;"
+  allow="autoplay; fullscreen; picture-in-picture"
+  allowfullscreen
+  loading="lazy"
+></iframe>
+```
+
+Add query parameters to `src` to change one embed: `autoplay=1` (starts muted), `muted=1`, `loop=1`, `start=SECONDS`, and `theme=light` or `theme=dark`. Every embed uses the Project's `player_appearance` for its theme, colors, and buttons. Update it through the Project API or the dashboard playground; read its schema from the OpenAPI, and remember that an update replaces the whole object. Embeds pick up appearance and `public_playback` changes within a minute. The user can also copy the code from the **Embed** tab in the Asset's **Playback** section. See [Embed on your website](https://chunkify.dev/docs/integration/embed) for website-builder steps.
+
+For editors that support oEmbed, such as Ghost or Notion, the user can paste the Asset's public page link, `https://chunkify.dev/watch/ASSET_ID`, on its own line instead of the iframe code; the editor gets the player from `https://chunkify.dev/oembed`. The same requirements apply. WordPress only does this for providers on its own list, so use the iframe in a **Custom HTML** block there. Embeds and public page links can be shared as soon as the Asset is created: until it can play, they show a processing screen, then the player.
 
 ### Playback analytics
 
